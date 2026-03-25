@@ -147,6 +147,13 @@
                 { q: 'Qual o maior felino da Amazônia?', a: ['Onça-pintada', 'Puma', 'Jaguatirica'], c: 0, img: './onça pintada.ceerto.png' },
                 { q: 'Qual o animal símbolo do Pantanal?', a: ['Tuiuiú', 'Jacaré', 'Arara'], c: 0, img: './jacaré,.png' },
                 { q: 'Qual bioma é conhecido como "Savana Brasileira"?', a: ['Cerrado', 'Pampa', 'Caatinga'], c: 0, img: './tamandua brandeira.certo.png' }
+            ],
+            LUCK: [
+                { n: 'Aranha Marrom', t: 'Picada! Volte 8 casas (Perca 4 tropas).', v: -4, img: './aranha marrom.certo.png' },
+                { n: 'Jacaré do Pantanal', t: 'Perseguido! Volte 4 casas (Perca 2 tropas).', v: -2, img: './jacaré,.png' },
+                { n: 'Ema Chasing', t: 'Fuja! Volte 9 casas (Perca 5 tropas).', v: -5, img: './ema.certo.png' },
+                { n: 'Jararaca', t: 'Veneno! Volte 5 casas (Perca 3 tropas).', v: -3, img: './Jararaca.certo.png' },
+                { n: 'Mico-Leão-Dourado', t: 'Ladrão! Volte 7 casas (Perca 3 tropas).', v: -3, img: './mico leão dourado.certo.png' }
             ]
         };
 
@@ -287,6 +294,7 @@
                         def.owner = this.turn; def.count = 1; att.count--;
                         this.addLog(`${CONFIG.DATA[did].n} conquistado!`, this.turn);
                         if (CONFIG.DATA[did].special === 'QUIZ') this.triggerQuiz();
+                        if (CONFIG.DATA[did].special === 'LUCK') this.triggerLuck();
                     }
                 } else {
                     att.count--;
@@ -297,6 +305,16 @@
             triggerQuiz() {
                 const q = CONFIG.QUIZ[Math.floor(Math.random()*CONFIG.QUIZ.length)];
                 this.showModal("Pergunta do Guardião", q.q, q);
+            }
+
+            triggerLuck() {
+                const l = CONFIG.LUCK[Math.floor(Math.random()*CONFIG.LUCK.length)];
+                this.showModal("Sorte ou Revés", l.t, { img: l.img });
+                // Apply penalty/effect
+                const tids = Object.keys(this.territories).filter(id => this.territories[id].owner === this.turn);
+                const randomId = tids[Math.floor(Math.random()*tids.length)];
+                this.territories[randomId].count = Math.max(1, this.territories[randomId].count + l.v);
+                this.addLog(`Sorte ou Revés: ${l.n}`, this.turn);
             }
 
             showModal(title, body, quiz) {
