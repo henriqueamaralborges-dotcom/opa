@@ -3,170 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biomas em Guerra</title>
+    <title>Biomas em Guerra: A Grande Expansão</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --card: rgba(22, 27, 34, 0.9);
+            --bg: #0b0e14;
+            --card: rgba(22, 27, 34, 0.95);
             --border: #30363d;
             --text: #e6edf3;
             --forest: #2ecc71;
             --invader: #e74c3c;
-            --accent: #58a6ff;
+            --bridge: #f39c12;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        header { height: 10vh; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--card); }
-        .faction-box { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); min-width: 150px; text-align: center; }
-        .faction-box.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
-        .forest-ui { border-left: 5px solid var(--forest); }
-        .invader-ui { border-right: 5px solid var(--invader); }
+        header { height: 80px; display: flex; justify-content: space-between; align-items: center; padding: 0 40px; background: var(--card); border-bottom: 2px solid var(--border); }
+        .stats { display: flex; gap: 20px; align-items: center; }
+        .faction-badge { padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); font-weight: 900; }
+        .faction-badge.forest { color: var(--forest); border-color: var(--forest); }
+        .faction-badge.invader { color: var(--invader); border-color: var(--invader); }
+        .faction-badge.active { background: rgba(255,255,255,0.1); box-shadow: 0 0 20px rgba(255,255,255,0.05); }
 
-        main { flex: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden; }
-        #map-area { flex: 3; background: #000; border-radius: 12px; border: 1px solid var(--border); position: relative; }
+        main { flex: 1; display: flex; padding: 20px; gap: 20px; position: relative; }
+        #map-container { flex: 3; background: #000; border-radius: 20px; border: 1px solid var(--border); box-shadow: inset 0 0 50px rgba(0,0,0,1); }
         #svg-map { width: 100%; height: 100%; }
-        
-        #side-panel { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .log-box { flex: 1; background: var(--card); border-radius: 8px; border: 1px solid var(--border); padding: 10px; overflow-y: auto; font-size: 0.8rem; }
-        .controls { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-        
-        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-secondary { background: #21262d; color: var(--text); border: 1px solid var(--border); }
-        .btn:hover { filter: brightness(1.2); }
 
-        .territory { cursor: pointer; transition: 0.3s; }
-        .territory:hover { filter: contrast(1.5); }
-        .link { stroke: #444; stroke-width: 1.5; stroke-dasharray: 4; opacity: 0.5; }
+        #log-area { flex: 1; background: var(--card); border-radius: 15px; border: 1px solid var(--border); display: flex; flex-direction: column; padding: 15px; }
+        #log-entries { flex: 1; overflow-y: auto; font-size: 0.85rem; padding-right: 10px; }
+        .log-entry { margin-bottom: 8px; border-left: 3px solid #444; padding-left: 10px; }
+        .log-entry.forest { border-color: var(--forest); }
+        .log-entry.invader { border-color: var(--invader); }
+
+        .controls { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; font-size: 0.9rem; }
+        .btn-main { background: #58a6ff; color: #fff; box-shadow: 0 4px 0 #2188ff; }
+        .btn-main:active { transform: translateY(4px); box-shadow: none; }
+        .btn-special { background: #21262d; color: var(--text); border: 1px solid var(--border); }
+
+        .territory { cursor: pointer; transition: 0.2s; }
+        .territory:hover .node-circle { filter: brightness(1.3); r: 28; }
+        .territory.selected .node-circle { stroke: #fff; stroke-width: 3px; r: 30; }
         
-        /* Modais */
-        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
-        #modal { background: #1c2128; padding: 30px; border-radius: 12px; border: 1px solid var(--border); max-width: 500px; width: 90%; text-align: center; }
-        #modal img { max-width: 100%; border-radius: 8px; margin: 15px 0; max-height: 200px; object-fit: contain; }
-        
+        .bridge-line { stroke: var(--bridge); stroke-width: 4; stroke-dasharray: 8 4; opacity: 0.6; }
+        .biome-line { stroke: #555; stroke-width: 1.5; opacity: 0.3; }
+
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        #modal-content { background: #1c2128; padding: 40px; border-radius: 20px; border: 1px solid var(--border); max-width: 600px; width: 90%; text-align: center; }
+        #modal-content img { max-width: 100%; border-radius: 10px; margin: 20px 0; border: 1px solid var(--border); }
         .hidden { display: none !important; }
-        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #222; padding: 2px 0; }
     </style>
 </head>
 <body>
     <header>
-        <div class="faction-box forest-ui" id="f-stats">
-            <div style="font-size: 0.7rem; color: #888;">FLORESTA</div>
-            <div id="f-count" style="font-size: 1.2rem; font-weight: bold;">10</div>
+        <div class="stats">
+            <div class="faction-badge forest" id="f-stats">FLORESTA: <span id="f-count">10</span></div>
         </div>
         <div style="text-align: center;">
-            <div id="game-turn" style="font-weight: bold; color: var(--accent);">TURNO DA FLORESTA</div>
-            <div id="game-phase" style="font-size: 0.8rem; color: #888;">FASE DE RECRUTAMENTO</div>
+            <h2 id="turn-name" style="letter-spacing: 2px;">VEZ DA FLORESTA</h2>
+            <p id="phase-name" style="font-size: 0.8rem; color: #888; text-transform: uppercase;">Recrutamento</p>
         </div>
-        <div class="faction-box invader-ui" id="i-stats">
-            <div style="font-size: 0.7rem; color: #888;">INVASORES</div>
-            <div id="i-count" style="font-size: 1.2rem; font-weight: bold;">10</div>
+        <div class="stats">
+            <div class="faction-badge invader" id="i-stats">INVASORES: <span id="i-count">10</span></div>
         </div>
     </header>
 
     <main>
-        <div id="map-area">
-            <svg id="svg-map" viewBox="0 0 1000 700">
-                <g id="links"></g>
-                <g id="terrs"></g>
+        <div id="map-container">
+            <svg id="svg-map" viewBox="0 0 1000 800">
+                <g id="links-layer"></g>
+                <g id="terrs-layer"></g>
             </svg>
         </div>
-        <div id="side-panel">
-            <div class="log-box" id="log"></div>
+        <div id="log-area">
+            <h3 style="margin-bottom: 10px; font-size: 0.9rem; color: #888;">DIÁRIO DE GUERRA</h3>
+            <div id="log-entries"></div>
             <div class="controls">
-                <div id="move-dice" class="hidden" style="text-align: center; font-size: 1.2rem; font-weight: bold;">
-                    Dado: <span id="dice-val">0</span>
+                <button class="btn btn-main" id="next-btn">Próxima Fase</button>
+                <div id="dice-pouch" class="hidden" style="text-align: center; font-weight: bold; padding: 5px;">
+                    Dado: <span id="dice-val" style="color: #ffca28; font-size: 1.5rem;">6</span>
                 </div>
-                <button class="btn btn-primary" id="btn-next">Próxima Fase</button>
-                <button class="btn btn-secondary hidden" id="btn-special">Extração de Madeira</button>
             </div>
         </div>
     </main>
 
     <div id="modal-overlay" class="hidden">
-        <div id="modal">
-            <h2 id="m-title">Título</h2>
-            <div id="m-body">Corpo</div>
-            <div id="m-quiz" class="hidden" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
-            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" id="m-btn">Fechar</button>
+        <div id="modal-content">
+            <h2 id="m-title">Alerta Biológico!</h2>
+            <div id="m-body"></div>
+            <div id="m-quiz" class="hidden" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+            <button class="btn btn-main" style="width: 100%; margin-top: 30px;" id="m-close">Entendido</button>
         </div>
     </div>
 
     <script>
-        const CONFIG = {
+        const GAME_DATA = {
             BIOMES: {
-                AMAZONIA: { name: 'Amazônia', color: '#2ecc71', bonus: 5, penalty: true, territories: 7 },
-                PANTANAL: { name: 'Pantanal', color: '#3498db', bonus: 2, penalty: true, territories: 4 },
-                ATLANTICA: { name: 'Mata Atlântica', color: '#1e8449', bonus: 3, penalty: false, territories: 6 },
-                CAATINGA: { name: 'Caatinga', color: '#f1c40f', bonus: 2, cost: 2, territories: 4 },
-                CERRADO: { name: 'Cerrado', color: '#e67e22', bonus: 4, penalty: false, territories: 5 },
-                COSTAO: { name: 'Costão Rochoso', color: '#95a5a6', bonus: 2, penalty: false, territories: 3 }
+                AMAZONIA: { x: 500, y: 150, color: '#2ecc71', name: 'Amazônia' },
+                CAATINGA: { x: 800, y: 350, color: '#f1c40f', name: 'Caatinga' },
+                CERRADO: { x: 200, y: 350, color: '#e67e22', name: 'Cerrado' },
+                ATLANTICA: { x: 800, y: 600, color: '#1e8449', name: 'Mata Atlântica' },
+                PANTANAL: { x: 200, y: 600, color: '#3498db', name: 'Pantanal' },
+                COSTAO: { x: 500, y: 700, color: '#95a5a6', name: 'Costão Rochoso' }
             },
-            DATA: {
-                // Amazônia
-                'A1': { n: 'Manaus', b: 'AMAZONIA', x: 200, y: 150 },
-                'A2': { n: 'Rio Branco', b: 'AMAZONIA', x: 100, y: 220 },
-                'A3': { n: 'Santarém', b: 'AMAZONIA', x: 300, y: 120 },
-                'A4': { n: 'Belém', b: 'AMAZONIA', x: 420, y: 100 },
-                'A5': { n: 'Xingu', b: 'AMAZONIA', x: 350, y: 220, special: 'QUIZ' },
-                'A6': { n: 'Japurá', b: 'AMAZONIA', x: 150, y: 80 },
-                'A7': { n: 'Leticia', b: 'AMAZONIA', x: 50, y: 120 },
-                // Pantanal
-                'P1': { n: 'Cuiabá', b: 'PANTANAL', x: 280, y: 400 },
-                'P2': { n: 'Corumbá', b: 'PANTANAL', x: 220, y: 480 },
-                'P3': { n: 'Aquidauana', b: 'PANTANAL', x: 250, y: 550 },
-                'P4': { n: 'Bonito', b: 'PANTANAL', x: 180, y: 520 },
-                // Caatinga
-                'K1': { n: 'Sertão', b: 'CAATINGA', x: 750, y: 150 },
-                'K2': { n: 'Petrolina', b: 'CAATINGA', x: 800, y: 220 },
-                'K3': { n: 'Canudos', b: 'CAATINGA', x: 850, y: 180, special: 'QUIZ' },
-                'K4': { n: 'Cariri', b: 'CAATINGA', x: 720, y: 250 },
-                // Cerrado
-                'C1': { n: 'Brasília', b: 'CERRADO', x: 500, y: 380 },
-                'C2': { n: 'Chapada', b: 'CERRADO', x: 550, y: 280 },
-                'C3': { n: 'Jalapão', b: 'CERRADO', x: 620, y: 250 },
-                'C4': { n: 'Goiás', b: 'CERRADO', x: 450, y: 320 },
-                'C5': { n: 'Palmas', b: 'CERRADO', x: 580, y: 180 },
-                // Mata Atlântica
-                'M1': { n: 'São Paulo', b: 'ATLANTICA', x: 600, y: 520 },
-                'M2': { n: 'Rio de Janeiro', b: 'ATLANTICA', x: 680, y: 480 },
-                'M3': { n: 'Curitiba', b: 'ATLANTICA', x: 550, y: 580 },
-                'M4': { n: 'Vitória', b: 'ATLANTICA', x: 750, y: 420 },
-                'M5': { n: 'Salvador', b: 'ATLANTICA', x: 850, y: 320 },
-                'M6': { n: 'Belo Horizonte', b: 'ATLANTICA', x: 630, y: 400 },
-                // Costão Rochoso
-                'R1': { n: 'Floripa', b: 'COSTAO', x: 620, y: 650 },
-                'R2': { n: 'Porto Alegre', b: 'COSTAO', x: 550, y: 680 },
-                'R3': { n: 'Ilhabela', b: 'COSTAO', x: 700, y: 580 }
+            NODES: {
+                'BASE': { n: 'BASE INVASORA', b: 'CENTER', x: 500, y: 400, startOwner: 'INVADER' },
+                // Amazônia (Norte)
+                'A1': { n: 'Ponte Amazônia', b: 'AMAZONIA', x: 500, y: 250 },
+                'A2': { n: 'Coração Verde', b: 'AMAZONIA', x: 500, y: 100 },
+                'A3': { n: 'Rio Negro', b: 'AMAZONIA', x: 420, y: 150 },
+                'A4': { n: 'Xingu', b: 'AMAZONIA', x: 580, y: 150 },
+                'A5': { n: 'Manaus', b: 'AMAZONIA', x: 450, y: 50 },
+                'A6': { n: 'Belém', b: 'AMAZONIA', x: 550, y: 50 },
+                'A7': { n: 'Tapajós', b: 'AMAZONIA', x: 500, y: 180, special: 'QUIZ' },
+                // Pantanal (SW)
+                'P1': { n: 'Ponte Pantanal', b: 'PANTANAL', x: 380, y: 480 },
+                'P2': { n: 'Rio Cuiabá', b: 'PANTANAL', x: 250, y: 550 },
+                'P3': { n: 'Corumbá', b: 'PANTANAL', x: 150, y: 620 },
+                'P4': { n: 'Bonito', b: 'PANTANAL', x: 250, y: 680, special: 'LUCK' },
+                // Caatinga (NE)
+                'K1': { n: 'Ponte Sertão', b: 'CAATINGA', x: 620, y: 320 },
+                'K2': { n: 'Petrolina', b: 'CAATINGA', x: 750, y: 250 },
+                'K3': { n: 'Canudos', b: 'CAATINGA', x: 880, y: 250 },
+                'K4': { n: 'Sertão Bravio', b: 'CAATINGA', x: 820, y: 150, special: 'QUIZ' },
+                // Cerrado (NW)
+                'C1': { n: 'Ponte Planalto', b: 'CERRADO', x: 380, y: 320 },
+                'C2': { n: 'Chapada', b: 'CERRADO', x: 250, y: 250 },
+                'C3': { n: 'Jalapão', b: 'CERRADO', x: 120, y: 250 },
+                'C4': { n: 'Brasília', b: 'CERRADO', x: 180, y: 150, special: 'LUCK' },
+                'C5': { n: 'Veredas', b: 'CERRADO', x: 280, y: 180 },
+                // Mata Atlântica (SE)
+                'M1': { n: 'Ponte da Serra', b: 'ATLANTICA', x: 620, y: 480 },
+                'M2': { n: 'Vale das Bromélias', b: 'ATLANTICA', x: 750, y: 550 },
+                'M3': { n: 'Reserva', b: 'ATLANTICA', x: 880, y: 550 },
+                'M4': { n: 'Bosque Sagrado', b: 'ATLANTICA', x: 820, y: 650, special: 'QUIZ' },
+                'M5': { n: 'Pinhais', b: 'ATLANTICA', x: 720, y: 650 },
+                'M6': { n: 'Manguezal', b: 'ATLANTICA', x: 880, y: 450 },
+                // Costão Rochoso (S)
+                'R1': { n: 'Ponte das Ondas', b: 'COSTAO', x: 500, y: 550 },
+                'R2': { n: 'Ilhabela', b: 'COSTAO', x: 450, y: 650 },
+                'R3': { n: 'Arraial', b: 'COSTAO', x: 550, y: 650 }
             },
-            LINKS: [
-                ['A1','A2'],['A1','A3'],['A1','A5'],['A1','A6'],['A1','A7'],['A3','A4'],['A4','C5'],['C5','C2'],['C2','C1'],['C1','C4'],['C4','P1'],['P1','P2'],['P2','P3'],['P3','P4'],['P4','P2'],['C1','M1'],['M1','M2'],['M2','M4'],['M4','M5'],['M5','K2'],['K2','K1'],['K1','K3'],['K3','K2'],['K2','K4'],['K4','C3'],['C3','C5'],['M1','M3'],['M3','R1'],['R1','R2'],['R2','M3'],['M1','R3'],['R3','M2'],['M6','M1'],['M6','M2'],['M6','C1']
+            BRIDGES: [
+                ['BASE','A1'], ['BASE','P1'], ['BASE','K1'], ['BASE','C1'], ['BASE','M1'], ['BASE','R1']
             ],
-            QUIZ: [
-                { q: 'Qual o maior felino da Amazônia?', a: ['Onça-pintada', 'Puma', 'Jaguatirica'], c: 0, img: './onça pintada.ceerto.png' },
-                { q: 'Qual o animal símbolo do Pantanal?', a: ['Tuiuiú', 'Jacaré', 'Arara'], c: 0, img: './jacaré,.png' },
-                { q: 'Qual bioma é conhecido como "Savana Brasileira"?', a: ['Cerrado', 'Pampa', 'Caatinga'], c: 0, img: './tamandua brandeira.certo.png' }
+            INTERNAL_LINKS: [
+                ['A1','A7'],['A7','A3'],['A7','A4'],['A3','A2'],['A4','A2'],['A2','A5'],['A2','A6'],
+                ['P1','P2'],['P2','P3'],['P3','P4'],['P4','P2'],
+                ['K1','K2'],['K2','K3'],['K3','K4'],['K4','K2'],
+                ['C1','C2'],['C2','C3'],['C3','C4'],['C4','C5'],['C5','C2'],
+                ['M1','M2'],['M2','M3'],['M3','M4'],['M4','M5'],['M5','M2'],['M3','M6'],['M6','M2'],
+                ['R1','R2'],['R2','R3'],['R3','R1']
             ],
-            LUCK: [
+            REVERSES: [
                 { n: 'Aranha Marrom', t: 'Picada! Volte 8 casas (Perca 4 tropas).', v: -4, img: './aranha marrom.certo.png' },
                 { n: 'Jacaré do Pantanal', t: 'Perseguido! Volte 4 casas (Perca 2 tropas).', v: -2, img: './jacaré,.png' },
                 { n: 'Ema Chasing', t: 'Fuja! Volte 9 casas (Perca 5 tropas).', v: -5, img: './ema.certo.png' },
                 { n: 'Jararaca', t: 'Veneno! Volte 5 casas (Perca 3 tropas).', v: -3, img: './Jararaca.certo.png' },
                 { n: 'Mico-Leão-Dourado', t: 'Ladrão! Volte 7 casas (Perca 3 tropas).', v: -3, img: './mico leão dourado.certo.png' },
                 { n: 'Bicho Preguiça', t: 'Arranhão! Volte 4 casas (Perca 2 tropas).', v: -2, img: './Preguiça.certo.png' },
-                { n: 'Onça Pintada', t: 'Perigo! Volte 7 casas (Perca 3 tropas).', v: -3, img: './onça pintada.ceerto.png' },
-                { n: 'Tamanduá Bandeira', t: 'Formigueiro! Volte 5 casas (Perca 2 tropas).', v: -2, img: './tamandua brandeira.certo.png' },
-                { n: 'Sucuri', t: 'Estrangulamento! Volte 6 casas (Perca 3 tropas).', v: -3, img: './sucuri.certo.png' }
+                { n: 'Onça Pintada', t: 'Feral! Volte 7 casas (Perca 3 tropas).', v: -3, img: './onça pintada.ceerto.png' },
+                { n: 'Tamanduá Bandeira', t: 'Ataque! Volte 5 casas (Perca 2 tropas).', v: -2, img: './tamandua brandeira.certo.png' },
+                { n: 'Sucuri', t: 'Abraço mortal! Volte 6 casas (Perca 3 tropas).', v: -3, img: './sucuri.certo.png' }
+            ],
+            QUIZ: [
+                { q: 'Qual o maior felino da Amazônia?', a: ['Onça-pintada', 'Puma', 'Jaguatirica'], c: 0, img: './onça pintada.ceerto.png' },
+                { q: 'Qual bioma é conhecido como "Savana Brasileira"?', a: ['Cerrado', 'Caatinga', 'Pampa'], c: 0, img: './tamandua brandeira.certo.png' },
+                { q: 'Qual árvore é símbolo da Mata Atlântica?', a: ['Pau-Brasil', 'Pinho', 'Ipê'], c: 0, img: './onça pintada.ceerto.png' }
             ]
         };
 
-        class Game {
+        class Engine {
             constructor() {
                 this.turn = 'FOREST';
                 this.phase = 'RECRUIT';
-                this.troops = { FOREST: 10, INVADER: 10 };
                 this.territories = {};
+                this.troops = { FOREST: 20, INVADER: 20 };
                 this.selected = null;
                 this.movePts = 0;
                 this.log = [];
@@ -174,67 +185,64 @@
             }
 
             init() {
-                const ids = Object.keys(CONFIG.DATA);
-                ids.forEach((id, i) => {
-                    this.territories[id] = { owner: i < ids.length/2 ? 'FOREST' : 'INVADER', count: 3 };
+                Object.entries(GAME_DATA.NODES).forEach(([id, t]) => {
+                    this.territories[id] = { owner: t.startOwner || 'FOREST', count: id === 'BASE' ? 10 : 3 };
                 });
                 this.bind();
                 this.update();
-                this.addLog("O destino dos biomas começou!", "system");
+                this.addLog("Invasores detectados no Centro! Defenda os Biomas.", "system");
             }
 
             bind() {
-                document.getElementById('btn-next').onclick = () => this.nextPhase();
-                document.getElementById('m-btn').onclick = () => this.hideModal();
-                window.onkeydown = (e) => { if(e.key === 'Enter') this.nextPhase(); };
+                document.getElementById('next-btn').onclick = () => this.nextPhase();
+                document.getElementById('m-close').onclick = () => this.hideModal();
             }
 
             update() {
-                document.getElementById('game-turn').innerText = `TURNO DA ${this.turn === 'FOREST'?'FLORESTA':'INVASORES'}`;
-                document.getElementById('game-turn').style.color = this.turn==='FOREST'?'#2ecc71':'#e74c3c';
-                document.getElementById('game-phase').innerText = `FASE: ${this.phase}`;
+                const isF = this.turn === 'FOREST';
+                document.getElementById('turn-name').innerText = isF ? "VEZ DA FLORESTA" : "VEZ DOS INVASORES";
+                document.getElementById('turn-name').style.color = isF ? "#2ecc71" : "#e74c3c";
+                document.getElementById('phase-name').innerText = this.phase;
                 document.getElementById('f-count').innerText = this.troops.FOREST;
                 document.getElementById('i-count').innerText = this.troops.INVADER;
-                document.getElementById('f-stats').className = `faction-box forest-ui ${this.turn==='FOREST'?'active':''}`;
-                document.getElementById('i-stats').className = `faction-box invader-ui ${this.turn==='INVADER'?'active':''}`;
+                document.getElementById('f-stats').classList.toggle('active', isF);
+                document.getElementById('i-stats').classList.toggle('active', !isF);
                 this.render();
             }
 
             render() {
-                const links = document.getElementById('links');
-                const terrs = document.getElementById('terrs');
+                const links = document.getElementById('links-layer');
+                const terrs = document.getElementById('terrs-layer');
                 links.innerHTML = ''; terrs.innerHTML = '';
 
-                CONFIG.LINKS.forEach(l => {
-                    const t1 = CONFIG.DATA[l[0]]; const t2 = CONFIG.DATA[l[1]];
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', t1.x); line.setAttribute('y1', t1.y);
-                    line.setAttribute('x2', t2.x); line.setAttribute('y2', t2.y);
-                    line.setAttribute('class', 'link');
-                    links.appendChild(line);
-                });
+                // Draw Bridges
+                GAME_DATA.BRIDGES.forEach(l => this.drawLine(l, 'bridge-line'));
+                // Draw Internal
+                GAME_DATA.INTERNAL_LINKS.forEach(l => this.drawLine(l, 'biome-line'));
 
-                Object.entries(CONFIG.DATA).forEach(([id, t]) => {
+                // Draw Nodes
+                Object.entries(GAME_DATA.NODES).forEach(([id, t]) => {
                     const state = this.territories[id];
                     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                     g.setAttribute('class', `territory ${this.selected === id ? 'selected' : ''}`);
                     
-                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    circle.setAttribute('cx', t.x); circle.setAttribute('cy', t.y); circle.setAttribute('r', '22');
-                    circle.setAttribute('fill', state.owner === 'FOREST' ? '#2ecc71' : '#e74c3c');
-                    circle.setAttribute('stroke', CONFIG.BIOMES[t.b].color);
-                    circle.setAttribute('stroke-width', '4');
-                    g.appendChild(circle);
+                    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    c.setAttribute('class', 'node-circle');
+                    c.setAttribute('cx', t.x); c.setAttribute('cy', t.y); c.setAttribute('r', '25');
+                    c.setAttribute('fill', state.owner === 'FOREST' ? '#2ecc71' : '#e74c3c');
+                    c.setAttribute('stroke', GAME_DATA.BIOMES[t.b] ? GAME_DATA.BIOMES[t.b].color : '#fff');
+                    c.setAttribute('stroke-width', '4');
+                    g.appendChild(c);
 
                     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    label.setAttribute('x', t.x); label.setAttribute('y', t.y+6); label.setAttribute('text-anchor', 'middle');
+                    label.setAttribute('x', t.x); label.setAttribute('y', t.y+5); label.setAttribute('text-anchor', 'middle');
                     label.setAttribute('fill', '#fff'); label.setAttribute('font-weight', '900');
                     label.textContent = state.count;
                     g.appendChild(label);
 
                     const name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    name.setAttribute('x', t.x); name.setAttribute('y', t.y+35); name.setAttribute('text-anchor', 'middle');
-                    name.setAttribute('fill', '#888'); name.setAttribute('font-size', '10px');
+                    name.setAttribute('x', t.x); name.setAttribute('y', t.y+40); name.setAttribute('text-anchor', 'middle');
+                    name.setAttribute('fill', '#777'); name.setAttribute('font-size', '10');
                     name.textContent = t.n;
                     g.appendChild(name);
 
@@ -243,41 +251,36 @@
                 });
             }
 
+            drawLine(l, cls) {
+                const t1 = GAME_DATA.NODES[l[0]]; const t2 = GAME_DATA.NODES[l[1]];
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', cls);
+                line.setAttribute('x1', t1.x); line.setAttribute('y1', t1.y);
+                line.setAttribute('x2', t2.x); line.setAttribute('y2', t2.y);
+                document.getElementById('links-layer').appendChild(line);
+            }
+
             handleClick(id) {
                 const t = this.territories[id];
-                const spec = CONFIG.DATA[id];
+                const node = GAME_DATA.NODES[id];
 
-                if (this.phase === 'RECURUIT' || this.phase === 'RECRUITMENT' || this.phase === 'RECRUIT') {
+                if (this.phase === 'RECRUIT') {
                     if (t.owner === this.turn && this.troops[this.turn] > 0) {
-                        const cost = CONFIG.BIOMES[spec.b].cost || 1;
-                        if (this.troops[this.turn] >= cost) {
-                            this.troops[this.turn] -= cost;
-                            t.count++;
-                            this.addLog(`Recrutou em ${spec.n}`, this.turn);
-                        }
+                        this.troops[this.turn]--; t.count++;
+                        this.addLog(`Recrutou em ${node.n}`, this.turn);
                     }
                 } else if (this.phase === 'MOVE') {
                     if (this.selected && this.selected !== id) {
-                        const from = this.territories[this.selected];
-                        if (from.owner === this.turn && t.owner === this.turn && from.count > 1) {
-                            if (this.isNeighbor(this.selected, id)) {
-                                from.count--; t.count++;
-                                this.addLog(`Moveu para ${spec.n}`, "system");
-                            }
+                        if (this.territories[this.selected].owner === this.turn && t.owner === this.turn && this.isLink(this.selected, id)) {
+                            this.territories[this.selected].count--; t.count++;
                         }
                         this.selected = null;
-                    } else if (t.owner === this.turn) {
-                        this.selected = id;
-                    }
+                    } else if (t.owner === this.turn) this.selected = id;
                 } else if (this.phase === 'COMBAT') {
                     if (this.selected && this.selected !== id) {
-                        if (t.owner !== this.turn && this.isNeighbor(this.selected, id)) {
-                            this.battle(this.selected, id);
-                        }
+                        if (t.owner !== this.turn && this.isLink(this.selected, id)) this.battle(this.selected, id);
                         this.selected = null;
-                    } else if (t.owner === this.turn) {
-                        this.selected = id;
-                    }
+                    } else if (t.owner === this.turn) this.selected = id;
                 }
                 this.update();
             }
@@ -285,75 +288,28 @@
             battle(aid, did) {
                 const att = this.territories[aid]; const def = this.territories[did];
                 if (att.count < 2) return;
-                
-                const aDice = [Math.floor(Math.random()*6)+1].sort((a,b)=>b-a);
-                const dDice = [Math.floor(Math.random()*6)+1].sort((a,b)=>b-a);
-                
-                const forestWinsTies = (this.turn === 'FOREST' || def.owner === 'FOREST');
-                let win = forestWinsTies ? aDice[0] >= dDice[0] : aDice[0] > dDice[0];
-
-                if (win) {
+                const rollA = Math.floor(Math.random()*6)+1;
+                const rollD = Math.floor(Math.random()*6)+1;
+                const fWin = (this.turn === 'FOREST' || def.owner === 'FOREST');
+                if (fWin ? rollA >= rollD : rollA > rollD) {
                     def.count--;
                     if (def.count <= 0) {
                         def.owner = this.turn; def.count = 1; att.count--;
-                        this.addLog(`${CONFIG.DATA[did].n} conquistado!`, this.turn);
-                        if (CONFIG.DATA[did].special === 'QUIZ') this.triggerQuiz();
-                        if (CONFIG.DATA[did].special === 'LUCK') this.triggerLuck();
+                        this.triggerEvent(did);
                     }
-                } else {
-                    att.count--;
-                    this.addLog("Ataque repelido!", "system");
+                } else att.count--;
+                this.addLog(`${rollA} vs ${rollD}`, "system");
+            }
+
+            triggerEvent(id) {
+                const n = GAME_DATA.NODES[id];
+                if (n.special === 'QUIZ') {
+                    const q = GAME_DATA.QUIZ[Math.floor(Math.random()*GAME_DATA.QUIZ.length)];
+                    this.showModal("PERGUNTA DO GUARDIÃO", q.q, q);
+                } else if (n.special === 'LUCK') {
+                    const l = GAME_DATA.REVERSES[Math.floor(Math.random()*GAME_DATA.REVERSES.length)];
+                    this.showModal("SORTE OU REVÉS", `${l.n}: ${l.t}`, { img: l.img, effect: l.v });
                 }
-            }
-
-            triggerQuiz() {
-                const q = CONFIG.QUIZ[Math.floor(Math.random()*CONFIG.QUIZ.length)];
-                this.showModal("Pergunta do Guardião", q.q, q);
-            }
-
-            triggerLuck() {
-                const l = CONFIG.LUCK[Math.floor(Math.random()*CONFIG.LUCK.length)];
-                this.showModal("Sorte ou Revés", l.t, { img: l.img });
-                // Apply penalty/effect
-                const tids = Object.keys(this.territories).filter(id => this.territories[id].owner === this.turn);
-                const randomId = tids[Math.floor(Math.random()*tids.length)];
-                this.territories[randomId].count = Math.max(1, this.territories[randomId].count + l.v);
-                this.addLog(`Sorte ou Revés: ${l.n}`, this.turn);
-            }
-
-            showModal(title, body, quiz) {
-                const overlay = document.getElementById('modal-overlay');
-                document.getElementById('m-title').innerText = title;
-                document.getElementById('m-body').innerHTML = body;
-                if (quiz) {
-                    const img = quiz.img ? `<img src="${quiz.img}" onerror="this.style.display='none'">` : '';
-                    document.getElementById('m-body').innerHTML += img;
-                    const quizBox = document.getElementById('m-quiz');
-                    quizBox.classList.remove('hidden');
-                    quizBox.innerHTML = '';
-                    quiz.a.forEach((ans, i) => {
-                        const b = document.createElement('button');
-                        b.className = 'btn btn-secondary';
-                        b.innerText = ans;
-                        b.onclick = () => {
-                            if (i === quiz.c) {
-                                this.addLog("Acertou! +3 tropas", "system");
-                                this.troops[this.turn] += 3;
-                            } else {
-                                this.addLog("Errou o desafio.", "system");
-                            }
-                            this.hideModal();
-                        };
-                        quizBox.appendChild(b);
-                    });
-                }
-                overlay.classList.remove('hidden');
-            }
-
-            hideModal() {
-                document.getElementById('modal-overlay').classList.add('hidden');
-                document.getElementById('m-quiz').classList.add('hidden');
-                this.update();
             }
 
             nextPhase() {
@@ -362,32 +318,63 @@
                 if (i === 2) {
                     this.phase = 'RECRUIT';
                     this.turn = this.turn === 'FOREST' ? 'INVADER' : 'FOREST';
-                    this.calcTroops();
+                    this.calcBonus();
                 } else this.phase = phs[i+1];
                 this.selected = null;
                 this.update();
             }
 
-            calcTroops() {
-                let count = 0;
-                Object.values(this.territories).forEach(t => { if(t.owner === this.turn) count++; });
-                this.troops[this.turn] += Math.max(3, Math.floor(count / 3));
-                this.addLog(`Novo turno: +${Math.max(3, Math.floor(count / 3))} tropas`, this.turn);
+            calcBonus() {
+                let c = 0; Object.values(this.territories).forEach(t => { if(t.owner === this.turn) c++; });
+                const b = Math.max(3, Math.floor(c/3));
+                this.troops[this.turn] += b;
+                this.addLog(`Turno ${this.turn}: +${b} reforços`, "system");
             }
 
-            isNeighbor(id1, id2) {
-                return CONFIG.LINKS.some(l => (l[0]===id1 && l[1]===id2) || (l[0]===id2 && l[1]===id1));
+            isLink(a, b) {
+                return [...GAME_DATA.BRIDGES, ...GAME_DATA.INTERNAL_LINKS].some(l => (l[0]===a && l[1]===b) || (l[0]===b && l[1]===a));
+            }
+
+            showModal(t, b, extra) {
+                document.getElementById('m-title').innerText = t;
+                document.getElementById('m-body').innerHTML = b;
+                const quiz = document.getElementById('m-quiz');
+                quiz.classList.toggle('hidden', !extra || !extra.a);
+                if (extra && extra.img) {
+                    document.getElementById('m-body').innerHTML += `<br><img src="${extra.img}" onerror="this.style.display='none'">`;
+                }
+                if (extra && extra.a) {
+                    quiz.innerHTML = '';
+                    extra.a.forEach((ans, i) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-secondary';
+                        btn.innerText = ans;
+                        btn.onclick = () => {
+                            if (i === extra.c) { this.troops[this.turn] += 3; this.addLog("Acertou!", "system"); }
+                            this.hideModal();
+                        };
+                        quiz.appendChild(btn);
+                    });
+                }
+                if (extra && extra.effect) {
+                    this.troops[this.turn] = Math.max(0, this.troops[this.turn] + extra.effect);
+                }
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            }
+
+            hideModal() {
+                document.getElementById('modal-overlay').classList.add('hidden');
+                this.update();
             }
 
             addLog(m, f) {
                 this.log.unshift({ m, f });
-                const el = document.getElementById('log');
-                el.innerHTML = this.log.map(l => `<div class="log-entry ${l.f === 'FOREST' ? 'forest-txt' : l.f === 'INVADER' ? 'invader-txt' : ''}">${m}</div>`).join('');
-                if (this.log.length > 50) this.log.pop();
+                document.getElementById('log-entries').innerHTML = this.log.slice(0, 50).map(l => 
+                    `<div class="log-entry ${l.f.toLowerCase()}">${l.m}</div>`
+                ).join('');
             }
         }
-
-        const game = new Game();
+        const game = new Engine();
     </script>
 </body>
 </html>
